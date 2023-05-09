@@ -48,6 +48,9 @@ struct NewsListView: View {
             .navigationTitle("Apple News")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onAppear {
+            viewModel.fetchNews()
+        }
     }
 }
 

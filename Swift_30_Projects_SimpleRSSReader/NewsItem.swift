@@ -14,6 +14,9 @@ struct NewsItem: Decodable, Identifiable {
     let description: String
     let pubDate: String
     
+    enum CodingKeys: String, CodingKey {
+        case title, link, description, pubDate
+    }
     
     static let mocks: [Self] = (1...10).map {
         NewsItem(
