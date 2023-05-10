@@ -21,7 +21,18 @@ final class NewsListViewModel: ObservableObject {
         if let url = URL(string: urlString) {
             let xmlParserManager = XMLParserManager(url: url)
             
-            newsList = xmlParserManager.startParse(type: [NewsItem].self)
+            xmlParserManager.startParse(type: [NewsItem].self) { [weak self] result in
+                guard let self = self else {
+                    return
+                }
+                
+                switch result {
+                case .success(let list):
+                    self.newsList = list
+                case .failure(let error):
+                    print("ERROR : \(error.localizedDescription)")
+                }
+            }
         }
     }
 }

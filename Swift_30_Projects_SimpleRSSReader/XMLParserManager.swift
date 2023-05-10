@@ -8,28 +8,38 @@
 import Foundation
 
 final class XMLParserManager: NSObject, XMLParserDelegate {
-    private var parser: XMLParser?
+    private let url: URL
     
     init(url: URL) {
-        self.parser = XMLParser(contentsOf: url) // TODO: contentOf 수정
-        
-        super.init()
-        
-        parser?.delegate = self
+        self.url = url
     }
     
     private var result = [[String: String]]()
     private var current: [String: String]?
     private var currentKey: String?
     
-    func startParse<T: Decodable>(type: T.Type) -> T {
-        parser?.parse()
-        
-        let resultData = try! JSONSerialization.data(withJSONObject: result)
-        
-        let decoded = try! JSONDecoder().decode(type.self, from: resultData)
-        
-        return decoded
+    func startParse<T: Decodable>(type: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            if let data = data {
+                let xmlParser = XMLParser(data: data)
+                
+                xmlParser.delegate = self
+                
+                xmlParser.parse()
+                
+                let resultData = try! JSONSerialization.data(withJSONObject: self.result)
+                
+                let decoded = try! JSONDecoder().decode(type.self, from: resultData)
+                
+                completion(.success(decoded))
+            }
+        }
+        .resume()
     }
     
     func parser(
