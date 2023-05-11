@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final class XMLParserManager: NSObject, XMLParserDelegate {
     private let url: URL
@@ -17,6 +18,22 @@ final class XMLParserManager: NSObject, XMLParserDelegate {
     private var result = [[String: String]]()
     private var current: [String: String]?
     private var currentKey: String?
+    
+    func startParse<T: Decodable>(type: T.Type) -> Publishers.Decode<Publishers.TryMap<URLSession.DataTaskPublisher, JSONDecoder.Input>, T, JSONDecoder> {
+        return URLSession.shared.dataTaskPublisher(for: url)
+            .tryMap { data, _ in
+                let xmlParser = XMLParser(data: data)
+                
+                xmlParser.delegate = self
+                
+                xmlParser.parse()
+                
+                let resultData = try JSONSerialization.data(withJSONObject: self.result)
+                
+                return resultData
+            }
+            .decode(type: type.self, decoder: JSONDecoder())
+    }
     
     func startParse<T: Decodable>(type: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: url) { data, _, error in

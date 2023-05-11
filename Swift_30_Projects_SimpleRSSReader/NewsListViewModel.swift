@@ -6,10 +6,14 @@
 //
 
 import Foundation
+import Combine
+
 // http://www.apple.com/main/rss/hotnews/hotnews.rss
 final class NewsListViewModel: ObservableObject {
     @Published var newsList: [NewsItem] = []
     @Published var selectedItem: NewsItem?
+    
+    private var store = Set<AnyCancellable>()
     
     func checkSelected(item: NewsItem) -> Bool {
         return selectedItem?.id == item.id
@@ -21,18 +25,20 @@ final class NewsListViewModel: ObservableObject {
         if let url = URL(string: urlString) {
             let xmlParserManager = XMLParserManager(url: url)
             
-            xmlParserManager.startParse(type: [NewsItem].self) { [weak self] result in
-                guard let self = self else {
-                    return
-                }
-                
-                switch result {
-                case .success(let list):
+            xmlParserManager
+                .startParse(type: [NewsItem].self)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .failure(let error):
+                        print(error.localizedDescription)
+                    case .finished:
+                        print("FINISHED")
+                    }
+                } receiveValue: { list in
                     self.newsList = list
-                case .failure(let error):
-                    print("ERROR : \(error.localizedDescription)")
                 }
-            }
+                .store(in: &store)
         }
     }
 }
